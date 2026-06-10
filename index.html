@@ -888,9 +888,9 @@ function rebuildFilters() {
   const cs = document.getElementById('catSuggest');
 
   const selP = pf.value, selC = cf.value;
-  pf.innerHTML = '<option value="">👤 모든 사람</option>' +
+  pf.innerHTML = '<option value="">👤 전체</option>' +
     persons.map(p => `<option${p===selP?' selected':''}>${escQ(p)}</option>`).join('');
-  cf.innerHTML = '<option value="">🏷 모든 카테고리</option>' +
+  cf.innerHTML = '<option value="">🏷 전체 태그</option>' +
     cats.map(c => `<option${c===selC?' selected':''}>${escQ(c)}</option>`).join('');
   ps.innerHTML = persons.map(p => `<option value="${escQ(p)}">`).join('');
   cs.innerHTML = cats.map(c => `<option value="${escQ(c)}">`).join('');
