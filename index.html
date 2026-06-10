@@ -247,8 +247,17 @@ a { color: var(--accent2); }
 /* ── CARDS ───────────────────────────────────────── */
 .grid {
   padding: 20px;
-  columns: 300px;
+  column-count: 4;
   column-gap: 16px;
+}
+@media (max-width: 1200px) {
+  .grid { column-count: 3; }
+}
+@media (max-width: 860px) {
+  .grid { column-count: 2; }
+}
+@media (max-width: 520px) {
+  .grid { column-count: 1; }
 }
 .card {
   break-inside: avoid;
