@@ -779,11 +779,8 @@ function loadGis() {
 
 function tryInit() {
   if (!gapiReady || !gisReady) return;
-  const savedToken = localStorage.getItem('vrb_token');
-  if (savedToken) {
-    gapi.client.setToken({ access_token: savedToken });
-    afterLogin();
-  }
+  // 항상 로그인 화면 표시 — 자동 팝업 없음
+  show('authScreen', true);
 }
 
 function handleSignIn() {
@@ -793,20 +790,22 @@ function handleSignIn() {
   if (CLIENT_ID === 'YOUR_CLIENT_ID') {
     toast('CLIENT_ID를 먼저 설정해야 합니다. README.md를 확인해주세요.', 'err'); return;
   }
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  tokenClient.requestAccessToken({ prompt: 'select_account' });
 }
 
 function onTokenReceived(resp) {
   isRefreshing = false;
   if (resp.error) {
-    // 조용한 갱신 실패 시 로그인 화면으로
-    localStorage.removeItem('vrb_token');
+    // 조용한 갱신 실패 → 로그인 화면으로 (팝업 없이)
+    localStorage.removeItem('vrb_consented');
     show('appScreen', false);
     show('configScreen', false);
     show('authScreen', true);
     return;
   }
-  localStorage.setItem('vrb_token', resp.access_token);
+  // 토큰은 메모리(gapi)에만 유지, localStorage에는 동의 플래그만 저장
+  localStorage.setItem('vrb_consented', '1');
+  gapi.client.setToken({ access_token: resp.access_token });
   afterLogin();
 }
 
@@ -1200,17 +1199,16 @@ function toast(msg, type) {
 function handleErr(e) {
   console.error(e);
   if (e.status === 401 || e.status === 403) {
-    localStorage.removeItem('vrb_token');
-    if (isRefreshing) return; // 이미 갱신 중이면 중복 호출 방지
+    if (isRefreshing) return;
     isRefreshing = true;
-    try {
-      tokenClient.requestAccessToken({ prompt: '' });
-    } catch(_) {
-      isRefreshing = false;
+    gapi.client.setToken(null);
+    toast('세션이 만료되었습니다. 다시 로그인해주세요.', 'err');
+    setTimeout(() => {
       show('appScreen', false);
       show('configScreen', false);
       show('authScreen', true);
-    }
+      isRefreshing = false;
+    }, 1500);
   } else {
     const msg = e.result?.error?.message || e.message || '알 수 없는 오류';
     toast('오류: ' + msg, 'err');
