@@ -356,6 +356,12 @@ a { color: var(--accent2); }
 }
 .tag-person { }
 .tag-cat { }
+.card-person {
+  font-size: 0.78rem;
+  color: var(--text3);
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
 .tag-date { margin-left: auto; font-size: 0.7rem; }
 
 /* Comment */
@@ -896,7 +902,7 @@ async function loadData() {
 // ── FILTERS ────────────────────────────────────────────────
 function rebuildFilters() {
   const persons = unique(allData.map(d => d.person).filter(Boolean));
-  const cats    = unique(allData.map(d => d.cat).filter(Boolean));
+  const cats    = unique(allData.flatMap(d => d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean) : []));
 
   const pf = document.getElementById('personFilter');
   const cf = document.getElementById('catFilter');
@@ -919,7 +925,7 @@ function filterCards() {
   const filtered = allData.filter(d => {
     const qOk  = !q || [d.title, d.comment, d.person, d.cat].join(' ').toLowerCase().includes(q);
     const pOk  = !p   || d.person === p;
-    const cOk  = !cat || d.cat    === cat;
+    const cOk  = !cat || (d.cat && d.cat.split(',').map(c=>c.trim()).includes(cat));
     return qOk && pOk && cOk;
   });
   renderCards(filtered);
@@ -966,6 +972,7 @@ function renderCards(data) {
 
   <div class="card-body">
     <div class="card-title">${safeTitle}</div>
+    ${d.person ? `<div class="card-person">👤 ${esc(d.person)}</div>` : ''}
     <div class="comment-box"
          contenteditable="true"
          data-row="${d.rowIndex}"
@@ -973,11 +980,10 @@ function renderCards(data) {
          onfocus="onCommentFocus(this)"
          onblur="saveComment(this)"
          >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
-    ${(d.person || d.cat || d.date) ? `
+    ${(d.cat || d.date) ? `
     <div class="card-meta">
-      ${d.person ? `<span class="tag tag-person">👤 ${esc(d.person)}</span>` : ''}
-      ${d.cat    ? `<span class="tag tag-cat">${esc(d.cat)}</span>` : ''}
-      ${d.date   ? `<span class="tag tag-date">${esc(d.date)}</span>` : ''}
+      ${d.cat  ? d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('') : ''}
+      ${d.date ? `<span class="tag tag-date">${esc(d.date)}</span>` : ''}
     </div>` : ''}
   </div>
 
