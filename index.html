@@ -779,8 +779,16 @@ function loadGis() {
 
 function tryInit() {
   if (!gapiReady || !gisReady) return;
-  // 항상 로그인 화면 표시 — 자동 팝업 없음
-  show('authScreen', true);
+  const token = localStorage.getItem('vrb_token');
+  const expiry = parseInt(localStorage.getItem('vrb_token_expiry') || '0');
+  if (token && Date.now() < expiry) {
+    gapi.client.setToken({ access_token: token });
+    afterLogin();
+  } else {
+    localStorage.removeItem('vrb_token');
+    localStorage.removeItem('vrb_token_expiry');
+    show('authScreen', true);
+  }
 }
 
 function handleSignIn() {
@@ -803,8 +811,10 @@ function onTokenReceived(resp) {
     show('authScreen', true);
     return;
   }
-  // 토큰은 메모리(gapi)에만 유지, localStorage에는 동의 플래그만 저장
-  localStorage.setItem('vrb_consented', '1');
+  // 토큰 + 만료 시간 저장 (expires_in은 보통 3600초, 여유 60초 차감)
+  const expiry = Date.now() + ((resp.expires_in || 3600) - 60) * 1000;
+  localStorage.setItem('vrb_token', resp.access_token);
+  localStorage.setItem('vrb_token_expiry', String(expiry));
   gapi.client.setToken({ access_token: resp.access_token });
   afterLogin();
 }
@@ -1198,7 +1208,7 @@ function toast(msg, type) {
 
 function handleErr(e) {
   console.error(e);
-  if (e.status === 401 || e.status === 403) {
+  if (e.status === 401) {
     if (isRefreshing) return;
     isRefreshing = true;
     gapi.client.setToken(null);
@@ -1209,6 +1219,8 @@ function handleErr(e) {
       show('authScreen', true);
       isRefreshing = false;
     }, 1500);
+  } else if (e.status === 403) {
+    toast('스프레드시트 접근 권한이 없습니다. 시트가 공유되어 있는지 확인해주세요.', 'err');
   } else {
     const msg = e.result?.error?.message || e.message || '알 수 없는 오류';
     toast('오류: ' + msg, 'err');
