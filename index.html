@@ -911,7 +911,12 @@ async function loadData() {
         comment: r[C.comment] || '',
         date:    r[C.date]    || ''
       }))
-      .filter(r => r.url);
+      .filter(r => r.url)
+      .sort((a, b) => {
+        const da = a.date ? new Date(a.date) : new Date(0);
+        const db = b.date ? new Date(b.date) : new Date(0);
+        return db - da; // 최신 날짜 순
+      });
     rebuildFilters();
     renderCards(allData);
   } catch(e) { handleErr(e); }
