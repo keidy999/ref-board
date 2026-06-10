@@ -149,7 +149,10 @@ a { color: var(--accent2); }
   white-space: nowrap; color: var(--text);
   display: flex; align-items: center; gap: 8px;
   letter-spacing: -0.3px;
+  cursor: pointer;
+  user-select: none;
 }
+.header-logo:hover { opacity: 0.75; }
 .header-logo-mark {
   width: 28px; height: 28px;
   background: var(--accent);
@@ -182,13 +185,19 @@ a { color: var(--accent2); }
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text2);
-  padding: 7px 12px;
+  padding: 7px 10px 7px 14px;
   border-radius: var(--radius-pill);
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
   max-width: 140px;
   transition: border-color var(--dur);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239C9E9C' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
 }
 .filter-select:focus { outline: none; border-color: var(--accent); }
 
@@ -238,11 +247,12 @@ a { color: var(--accent2); }
 /* ── CARDS ───────────────────────────────────────── */
 .grid {
   padding: 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  columns: 300px;
+  column-gap: 16px;
 }
 .card {
+  break-inside: avoid;
+  margin-bottom: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -281,13 +291,15 @@ a { color: var(--accent2); }
 .card-thumb:hover .thumb-overlay { opacity: 1; }
 .play-circle {
   width: 52px; height: 52px;
-  background: var(--accent);
+  background: rgba(255,255,255,0.85);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 1.2rem;
-  box-shadow: 0 4px 16px rgba(111,201,243,0.4);
+  color: var(--text);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
   transform: scale(0.8);
   transition: transform var(--dur) var(--ease);
+  backdrop-filter: blur(4px);
 }
 .card-thumb:hover .play-circle { transform: scale(1); }
 .ts-badge {
@@ -323,24 +335,19 @@ a { color: var(--accent2); }
 }
 .card-meta {
   display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
-  margin-bottom: 10px;
+  margin-top: 8px;
 }
 .tag {
-  font-size: 0.72rem; padding: 3px 10px;
+  font-size: 0.72rem; padding: 3px 9px;
   border-radius: var(--radius-pill); white-space: nowrap;
-  font-weight: 600;
+  font-weight: 500;
+  background: var(--surface2);
+  color: var(--text3);
+  border: none;
 }
-.tag-person {
-  background: rgba(111,201,243,0.12);
-  color: #2a8ab8;
-  border: 1px solid rgba(111,201,243,0.3);
-}
-.tag-cat {
-  background: var(--accent2-soft);
-  color: var(--accent2);
-  border: 1px solid rgba(85,42,140,0.15);
-}
-.tag-date { background: transparent; color: var(--text3); margin-left: auto; border: none; padding-right: 0; font-weight: 400; }
+.tag-person { }
+.tag-cat { }
+.tag-date { margin-left: auto; font-size: 0.7rem; }
 
 /* Comment */
 .comment-box {
@@ -469,7 +476,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 /* Empty / Loading */
 .empty-state {
-  grid-column: 1/-1;
+  column-span: all;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 80px 24px;
@@ -479,7 +486,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .empty-icon { font-size: 3rem; }
 .empty-state p { max-width: 300px; line-height: 1.6; color: var(--text3); }
 .spinner {
-  grid-column: 1/-1;
+  column-span: all;
   text-align: center; padding: 60px;
   color: var(--text3);
 }
@@ -592,7 +599,7 @@ select option { background: #fff; }
 <!-- ── MAIN APP ──────────────────────────────────────── -->
 <div id="appScreen" class="screen">
   <div class="header">
-    <div class="header-logo">
+    <div class="header-logo" onclick="loadData()" title="새로고침">
       <span>Ref<span class="grad-text">Board</span></span>
     </div>
     <div class="search-wrap">
@@ -602,10 +609,10 @@ select option { background: #fff; }
       <input class="search-input" id="searchInput" placeholder="제목, 코멘트 검색..." oninput="filterCards()">
     </div>
     <select class="filter-select" id="personFilter" onchange="filterCards()">
-      <option value="">👤 전체</option>
+      <option value="">👤 모든 사람</option>
     </select>
     <select class="filter-select" id="catFilter" onchange="filterCards()">
-      <option value="">🏷 전체 태그</option>
+      <option value="">🏷 모든 카테고리</option>
     </select>
     <button class="btn" onclick="openFormModal()">+ 추가</button>
     <button class="btn-icon" onclick="loadData()" title="새로고침">
@@ -888,9 +895,9 @@ function rebuildFilters() {
   const cs = document.getElementById('catSuggest');
 
   const selP = pf.value, selC = cf.value;
-  pf.innerHTML = '<option value="">👤 전체</option>' +
+  pf.innerHTML = '<option value="">👤 모든 사람</option>' +
     persons.map(p => `<option${p===selP?' selected':''}>${escQ(p)}</option>`).join('');
-  cf.innerHTML = '<option value="">🏷 전체 태그</option>' +
+  cf.innerHTML = '<option value="">🏷 모든 카테고리</option>' +
     cats.map(c => `<option${c===selC?' selected':''}>${escQ(c)}</option>`).join('');
   ps.innerHTML = persons.map(p => `<option value="${escQ(p)}">`).join('');
   cs.innerHTML = cats.map(c => `<option value="${escQ(c)}">`).join('');
@@ -950,11 +957,6 @@ function renderCards(data) {
 
   <div class="card-body">
     <div class="card-title">${safeTitle}</div>
-    <div class="card-meta">
-      ${d.person ? `<span class="tag tag-person">👤 ${esc(d.person)}</span>` : ''}
-      ${d.cat    ? `<span class="tag tag-cat">🏷 ${esc(d.cat)}</span>` : ''}
-      ${d.date   ? `<span class="tag tag-date">${esc(d.date)}</span>` : ''}
-    </div>
     <div class="comment-box"
          contenteditable="true"
          data-row="${d.rowIndex}"
@@ -962,6 +964,12 @@ function renderCards(data) {
          onfocus="onCommentFocus(this)"
          onblur="saveComment(this)"
          >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
+    ${(d.person || d.cat || d.date) ? `
+    <div class="card-meta">
+      ${d.person ? `<span class="tag tag-person">👤 ${esc(d.person)}</span>` : ''}
+      ${d.cat    ? `<span class="tag tag-cat">${esc(d.cat)}</span>` : ''}
+      ${d.date   ? `<span class="tag tag-date">${esc(d.date)}</span>` : ''}
+    </div>` : ''}
   </div>
 
   <div class="card-footer">
