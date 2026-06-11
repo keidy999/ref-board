@@ -929,8 +929,10 @@ async function ensureHeader() {
 
     if (a1 === 'ID') {
       // 구형 포맷: 헤더가 1행에 있음 → 맨 위에 빈 행 삽입 후 링크 쓰기
+      console.log('ensureHeader: old format detected, getting sheet metadata...');
       const meta2 = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: sheetId });
       const sh = meta2.result.sheets.find(s => s.properties.title === sheetName);
+      console.log('ensureHeader: found sheet:', sh && sh.properties.sheetId, 'title:', sh && sh.properties.title);
       await gapi.client.sheets.spreadsheets.batchUpdate({
         spreadsheetId: sheetId,
         resource: { requests: [{ insertDimension: {
@@ -938,12 +940,14 @@ async function ensureHeader() {
           inheritFromBefore: false
         }}]}
       });
+      console.log('ensureHeader: row inserted, writing link...');
       await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: sheetId,
         range: `${sheetName}!A1`,
         valueInputOption: 'USER_ENTERED',
         resource: { values: [[LINK_FORMULA]] }
       });
+      console.log('ensureHeader: link written!');
     } else if (a2 !== 'ID') {
       // 완전 새 시트
       await gapi.client.sheets.spreadsheets.values.batchUpdate({
