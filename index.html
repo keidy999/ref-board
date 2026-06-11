@@ -1089,22 +1089,31 @@ function renderCards(data) {
 
   document.getElementById('grid').innerHTML = data.map(d => {
     const vid   = getVid(d.url);
+    const insta = isInsta(d.url);
     const thumb = vid ? `https://img.youtube.com/vi/${vid}/mqdefault.jpg` : '';
     const secs  = tsToSec(d.ts);
     const safeTitle = esc(d.title || d.url);
     const safeComment = esc(d.comment);
     const safeUrl = escQ(d.url);
+    const thumbClick = vid
+      ? `openVideo('${vid}',${secs},'${esc(d.title)}')`
+      : insta ? `window.open('${safeUrl}','_blank')` : '';
 
     return `
 <div class="card" data-row="${d.rowIndex}">
-  <div class="card-thumb" onclick="openVideo('${vid}',${secs},'${esc(d.title)}')">
+  <div class="card-thumb" ${thumbClick ? `onclick="${thumbClick}"` : 'style="cursor:default"'}>
     ${thumb
       ? `<img src="${thumb}" alt="" loading="lazy"
              onerror="this.parentNode.innerHTML='<div class=\\'no-thumb\\'><svg width=32 height=32 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><path d=\\'M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z\\'/></svg><span>썸네일 없음</span></div>'">`
-      : `<div class="no-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg><span>썸네일 없음</span></div>`
+      : insta
+        ? `<div class="no-thumb" style="background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);">
+             <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="white" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" stroke="white" stroke-width="1.8"/><circle cx="17.5" cy="6.5" r="1.2" fill="white"/></svg>
+             <span style="color:white;font-weight:600;font-size:0.78rem;">Instagram</span>
+           </div>`
+        : `<div class="no-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg><span>썸네일 없음</span></div>`
     }
     <div class="thumb-overlay">
-      <div class="play-circle">▶</div>
+      <div class="play-circle">${insta ? '↗' : '▶'}</div>
     </div>
     ${d.ts ? `<div class="ts-badge">${esc(d.ts)}</div>` : ''}
   </div>
@@ -1293,6 +1302,9 @@ function getVid(url) {
   if (!url) return null;
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+function isInsta(url) {
+  return url && url.includes('instagram.com');
 }
 
 function tsToSec(ts) {
