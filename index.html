@@ -983,7 +983,7 @@ async function ensureHeader() {
         }
       });
     }
-  } catch(e) {}
+  } catch(e) { console.error('ensureHeader error:', e); handleErr(e); }
 }
 
 function persist() {
