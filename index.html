@@ -866,7 +866,7 @@ function afterLogin() {
   if (sheetId) {
     show('appScreen', true);
     showMigBanner();
-    loadData();
+    ensureHeader().then(() => loadData());
   } else {
     show('configScreen', true);
   }
