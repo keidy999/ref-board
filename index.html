@@ -896,11 +896,15 @@ async function createNewSheet() {
     sheetId = res.result.spreadsheetId;
     sheetName = '레퍼런스';
     persist();
-    await gapi.client.sheets.spreadsheets.values.update({
+    await gapi.client.sheets.spreadsheets.values.batchUpdate({
       spreadsheetId: sheetId,
-      range: `${sheetName}!A1:I1`,
-      valueInputOption: 'RAW',
-      resource: { values: [[...HEADER_ROW, 'https://keidy999.github.io/ref-board/']] }
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `${sheetName}!A1`, values: [['=HYPERLINK("https://keidy999.github.io/ref-board/","🎬 RefBoard 열기")']] },
+          { range: `${sheetName}!A2:H2`, values: [HEADER_ROW] }
+        ]
+      }
     });
     toast('시트 생성 완료!', 'ok');
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
@@ -913,25 +917,70 @@ async function createNewSheet() {
 
 async function ensureHeader() {
   const SITE_URL = 'https://keidy999.github.io/ref-board/';
+  const LINK_FORMULA = `=HYPERLINK("${SITE_URL}","🎬 RefBoard 열기")`;
   try {
     const res = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId, range: `${sheetName}!A1:I1`
+      spreadsheetId: sheetId, range: `${sheetName}!A1:A2`
     });
-    const row = res.result.values && res.result.values[0];
-    if (!row || row[0] !== 'ID') {
-      await gapi.client.sheets.spreadsheets.values.update({
+    const vals = res.result.values || [];
+    const a1 = vals[0] && vals[0][0];
+    const a2 = vals[1] && vals[1][0];
+
+    if (a1 === 'ID') {
+      // 구형 포맷: 헤더가 1행에 있음 → 맨 위에 빈 행 삽입 후 링크 쓰기
+      const meta2 = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: sheetId });
+      const sh = meta2.result.sheets.find(s => s.properties.title === sheetName);
+      await gapi.client.sheets.spreadsheets.batchUpdate({
         spreadsheetId: sheetId,
-        range: `${sheetName}!A1:I1`,
-        valueInputOption: 'RAW',
-        resource: { values: [[...HEADER_ROW, SITE_URL]] }
+        resource: { requests: [{ insertDimension: {
+          range: { sheetId: sh.properties.sheetId, dimension: 'ROWS', startIndex: 0, endIndex: 1 },
+          inheritFromBefore: false
+        }}]}
       });
-    } else if (!row[8] || row[8] !== SITE_URL) {
-      // header exists but site URL column missing/outdated
       await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: sheetId,
-        range: `${sheetName}!I1`,
-        valueInputOption: 'RAW',
-        resource: { values: [[SITE_URL]] }
+        range: `${sheetName}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [[LINK_FORMULA]] }
+      });
+    } else if (a2 !== 'ID') {
+      // 완전 새 시트
+      await gapi.client.sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: sheetId,
+        resource: {
+          valueInputOption: 'USER_ENTERED',
+          data: [
+            { range: `${sheetName}!A1`, values: [[LINK_FORMULA]] },
+            { range: `${sheetName}!A2:H2`, values: [HEADER_ROW] }
+          ]
+        }
+      });
+    } else if (!a1) {
+      // 헤더는 있는데 링크만 없음
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [[LINK_FORMULA]] }
+      });
+    }
+    // 2행 고정 (링크 + 헤더 모두 고정)
+    const meta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId: sheetId });
+    const sheet = meta.result.sheets.find(s => s.properties.title === sheetName);
+    if (sheet && sheet.properties.gridProperties.frozenRowCount !== 2) {
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        resource: {
+          requests: [{
+            updateSheetProperties: {
+              properties: {
+                sheetId: sheet.properties.sheetId,
+                gridProperties: { frozenRowCount: 2 }
+              },
+              fields: 'gridProperties.frozenRowCount'
+            }
+          }]
+        }
       });
     }
   } catch(e) {}
@@ -959,10 +1008,10 @@ async function loadData() {
       spreadsheetId: sheetId,
       range: `${sheetName}!A:H`
     });
-    const rows = (res.result.values || []).slice(1);
+    const rows = (res.result.values || []).slice(2);
     allData = rows
       .map((r, i) => ({
-        rowIndex: i + 2,
+        rowIndex: i + 3,
         id:      r[C.id]      || '',
         title:   r[C.title]   || '',
         url:     r[C.url]     || '',
