@@ -1097,11 +1097,11 @@ function renderCards(data) {
     const safeUrl = escQ(d.url);
     const thumbClick = vid
       ? `openVideo('${vid}',${secs},'${esc(d.title)}')`
-      : insta ? `window.open('${safeUrl}','_blank')` : '';
+      : insta ? `openInsta(this)` : '';
 
     return `
 <div class="card" data-row="${d.rowIndex}">
-  <div class="card-thumb" ${thumbClick ? `onclick="${thumbClick}"` : 'style="cursor:default"'}>
+  <div class="card-thumb" data-url="${safeUrl}" ${thumbClick ? `onclick="${thumbClick}"` : 'style="cursor:default"'}>
     ${thumb
       ? `<img src="${thumb}" alt="" loading="lazy"
              onerror="this.parentNode.innerHTML='<div class=\\'no-thumb\\'><svg width=32 height=32 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><path d=\\'M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z\\'/></svg><span>썸네일 없음</span></div>'">`
@@ -1148,6 +1148,10 @@ function renderCards(data) {
 }
 
 // ── VIDEO MODAL ────────────────────────────────────────────
+function openInsta(el) {
+  const url = el.dataset.url;
+  if (url) window.open(url, '_blank');
+}
 function openVideo(vid, startSec, title) {
   if (!vid) return;
   document.getElementById('videoTitle').textContent = decodeEntities(title || '');
