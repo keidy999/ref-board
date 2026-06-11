@@ -243,6 +243,7 @@ a { color: var(--accent2); }
   background: var(--surface);
 }
 .stats-bar strong { color: var(--text2); }
+.sheets-link, .sheets-link:visited, .sheets-link:hover { color: var(--text3) !important; text-decoration: none; font-weight: 500; font-size: 0.8rem; }
 
 /* ── CARDS ───────────────────────────────────────── */
 .grid {
@@ -1073,7 +1074,7 @@ function filterCards() {
 function renderCards(data) {
   const sb = document.getElementById('statsBar');
   sb.innerHTML = `<span><strong>${data.length}</strong>개 레퍼런스</span>` +
-    `<a href="https://docs.google.com/spreadsheets/d/${sheetId}/edit" target="_blank" style="color:var(--text3); margin-left:auto; font-weight:500; text-decoration:none;">Google Sheets 열기 ↗</a>`;
+    `<a href="https://docs.google.com/spreadsheets/d/${sheetId}/edit" target="_blank" class="sheets-link" style="margin-left:auto;">Google Sheets 열기 ↗</a>`;
 
   if (!data.length) {
     document.getElementById('grid').innerHTML = `
