@@ -737,7 +737,8 @@ select option { background: #fff; }
       </div>
       <div class="form-group">
         <label>찾아온 사람</label>
-        <input class="form-input" id="ePerson" placeholder="이름" autocomplete="off">
+        <div id="ePersonChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
+        <input class="form-input" id="ePerson" placeholder="직접 입력..." autocomplete="off">
       </div>
       <div class="form-group">
         <label>코멘트</label>
@@ -1179,8 +1180,30 @@ function openEditModal(rowIndex) {
   document.getElementById('eDate').value    = d.date    || '';
   document.getElementById('ePerson').value  = d.person  || '';
   document.getElementById('eComment').value = d.comment || '';
+
+  // 찾아온 사람 버튼 목록
+  const persons = unique(allData.map(r => r.person).filter(Boolean));
+  const chips = document.getElementById('ePersonChips');
+  chips.innerHTML = persons.map(p => `
+    <button type="button" onclick="selectPerson('${esc(p)}')"
+      style="padding:4px 10px;border-radius:var(--radius-pill);border:1px solid var(--border2);
+             background:${d.person===p?'var(--accent)':'var(--surface2)'};
+             color:${d.person===p?'#fff':'var(--text2)'};
+             font-size:0.78rem;cursor:pointer;font-family:inherit;transition:all 0.15s;"
+      id="chip-${esc(p)}">${esc(p)}</button>
+  `).join('');
+
   document.getElementById('editModal').classList.add('open');
   setTimeout(() => document.getElementById('eCat').focus(), 80);
+}
+
+function selectPerson(name) {
+  document.getElementById('ePerson').value = name;
+  document.querySelectorAll('#ePersonChips button').forEach(btn => {
+    const active = btn.textContent.trim() === name;
+    btn.style.background = active ? 'var(--accent)' : 'var(--surface2)';
+    btn.style.color = active ? '#fff' : 'var(--text2)';
+  });
 }
 
 function closeEditModal() {
