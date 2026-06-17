@@ -399,6 +399,13 @@ a { color: var(--accent2); }
   display: flex; align-items: center; justify-content: space-between;
   background: var(--surface2);
 }
+.card-edit-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 0.78rem; padding: 3px 7px;
+  border-radius: var(--radius-sm); font-family: inherit;
+  transition: color var(--dur), background var(--dur);
+}
+.card-edit-btn:hover { color: var(--text2); background: var(--surface3); }
 .card-link {
   font-size: 0.75rem; color: var(--text3);
   text-decoration: none;
@@ -708,6 +715,38 @@ select option { background: #fff; }
     <div class="form-footer">
       <button class="btn btn-outline" onclick="closeForm()">취소</button>
       <button class="btn" id="formSubmitBtn" onclick="submitForm()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT MODAL ───────────────────────────────────── -->
+<div class="overlay" id="editModal" onclick="maybeCloseEdit(event)">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-hd">
+      <h3>레퍼런스 수정</h3>
+      <button class="modal-x" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label>카테고리 / 태그</label>
+        <input class="form-input" id="eCat" placeholder="예: 무드, 편집, 색보정..." list="catSuggest" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>날짜</label>
+        <input class="form-input" id="eDate" type="date">
+      </div>
+      <div class="form-group">
+        <label>찾아온 사람</label>
+        <input class="form-input" id="ePerson" placeholder="이름" list="personSuggest" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>코멘트</label>
+        <textarea class="form-input" id="eComment" rows="4" placeholder="이 레퍼런스에 대한 메모나 포인트..."></textarea>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-outline" onclick="closeEditModal()">취소</button>
+      <button class="btn" id="editSubmitBtn" onclick="saveEditModal()">저장</button>
     </div>
   </div>
 </div>
@@ -1103,6 +1142,7 @@ function renderCards(data) {
       </svg>
       새 탭에서 열기
     </a>
+    <button class="card-edit-btn" onclick="openEditModal(${d.rowIndex})">✏️ 수정</button>
   </div>
 </div>`;
   }).join('');
@@ -1126,6 +1166,62 @@ function closeVideo() {
 }
 function maybeCloseVideo(e) {
   if (e.target === document.getElementById('videoModal')) closeVideo();
+}
+
+// ── EDIT MODAL ─────────────────────────────────────────────
+let editingRow = null;
+
+function openEditModal(rowIndex) {
+  editingRow = rowIndex;
+  const d = allData.find(r => r.rowIndex === rowIndex);
+  if (!d) return;
+  document.getElementById('eCat').value     = d.cat     || '';
+  document.getElementById('eDate').value    = d.date    || '';
+  document.getElementById('ePerson').value  = d.person  || '';
+  document.getElementById('eComment').value = d.comment || '';
+  document.getElementById('editModal').classList.add('open');
+  setTimeout(() => document.getElementById('eCat').focus(), 80);
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('open');
+  editingRow = null;
+}
+
+function maybeCloseEdit(e) {
+  if (e.target === document.getElementById('editModal')) closeEditModal();
+}
+
+async function saveEditModal() {
+  const btn = document.getElementById('editSubmitBtn');
+  btn.textContent = '저장 중...';
+  btn.disabled = true;
+  const cat     = document.getElementById('eCat').value.trim();
+  const date    = document.getElementById('eDate').value.trim();
+  const person  = document.getElementById('ePerson').value.trim();
+  const comment = document.getElementById('eComment').value.trim();
+  try {
+    await gapi.client.sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      resource: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `${sheetName}!E${editingRow}`, values: [[person]] },
+          { range: `${sheetName}!F${editingRow}`, values: [[cat]] },
+          { range: `${sheetName}!G${editingRow}`, values: [[comment]] },
+          { range: `${sheetName}!H${editingRow}`, values: [[date]] },
+        ]
+      }
+    });
+    toast('✅ 수정됐어요!', 'ok');
+    closeEditModal();
+    await loadData();
+  } catch(e) {
+    handleErr(e);
+  } finally {
+    btn.textContent = '저장';
+    btn.disabled = false;
+  }
 }
 
 // ── FORM MODAL ─────────────────────────────────────────────
