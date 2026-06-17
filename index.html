@@ -738,7 +738,7 @@ select option { background: #fff; }
       <div class="form-group">
         <label>찾아온 사람</label>
         <div id="ePersonChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;"></div>
-        <input class="form-input" id="ePerson" placeholder="직접 입력..." autocomplete="off">
+        <input class="form-input" id="ePerson" autocomplete="off" style="display:none;">
       </div>
       <div class="form-group">
         <label>코멘트</label>
@@ -1187,8 +1187,9 @@ function openEditModal(rowIndex) {
   chips.innerHTML = persons.map(p => `
     <button type="button" onclick="selectPerson('${esc(p)}')"
       style="padding:4px 10px;border-radius:var(--radius-pill);border:1px solid var(--border2);
-             background:${d.person===p?'var(--accent)':'var(--surface2)'};
-             color:${d.person===p?'#fff':'var(--text2)'};
+             background:${d.person===p?'var(--accent-soft)':'var(--surface2)'};
+             color:${d.person===p?'var(--accent)':'var(--text2)'};
+             border-color:${d.person===p?'var(--accent)':'var(--border2)'};
              font-size:0.78rem;cursor:pointer;font-family:inherit;transition:all 0.15s;"
       id="chip-${esc(p)}">${esc(p)}</button>
   `).join('');
@@ -1201,8 +1202,9 @@ function selectPerson(name) {
   document.getElementById('ePerson').value = name;
   document.querySelectorAll('#ePersonChips button').forEach(btn => {
     const active = btn.textContent.trim() === name;
-    btn.style.background = active ? 'var(--accent)' : 'var(--surface2)';
-    btn.style.color = active ? '#fff' : 'var(--text2)';
+    btn.style.background = active ? 'var(--accent-soft)' : 'var(--surface2)';
+    btn.style.color = active ? 'var(--accent)' : 'var(--text2)';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border2)';
   });
 }
 
