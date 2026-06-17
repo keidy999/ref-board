@@ -133,17 +133,23 @@ a { color: var(--accent2); }
   min-height: 100vh;
 }
 
+/* Sticky top wrapper */
+.sticky-top {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+
 /* Header */
 .header {
-  background: var(--surface);
+  background: transparent;
   border-bottom: 1px solid var(--border);
   padding: 12px 20px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  position: sticky; top: 0; z-index: 100;
-  box-shadow: 0 1px 0 var(--border);
 }
 .header-logo {
   font-size: 1rem; font-weight: 800;
@@ -623,6 +629,7 @@ select option { background: #fff; }
 
 <!-- ── MAIN APP ──────────────────────────────────────── -->
 <div id="appScreen" class="screen">
+  <div class="sticky-top">
   <div class="header">
     <div class="header-logo" onclick="loadData()" title="새로고침">
       <span>Ref<span class="grad-text">Board</span></span>
@@ -650,7 +657,7 @@ select option { background: #fff; }
   <div class="stats-bar" id="statsBar">
     레퍼런스 불러오는 중...
   </div>
-
+  </div><!-- /sticky-top -->
 
   <div class="grid" id="grid">
     <div class="spinner"><div class="spin"></div></div>
