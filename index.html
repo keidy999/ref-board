@@ -1125,7 +1125,10 @@ function renderCards(data) {
 
   <div class="card-body">
     <div class="card-title">${safeTitle}</div>
-    ${d.person ? `<div class="card-person">👤 ${esc(d.person)}</div>` : ''}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      ${d.person ? `<div class="card-person">👤 ${esc(d.person)}</div>` : '<div></div>'}
+      ${d.date ? `<span style="flex-shrink:0;font-size:0.75rem;color:var(--text3);">${esc(d.date)}</span>` : ''}
+    </div>
     <div class="comment-box"
          contenteditable="true"
          data-row="${d.rowIndex}"
@@ -1133,10 +1136,9 @@ function renderCards(data) {
          onfocus="onCommentFocus(this)"
          onblur="saveComment(this)"
          >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
-    ${(d.cat || d.date) ? `
+    ${d.cat ? `
     <div class="card-meta">
-      ${d.cat  ? d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('') : ''}
-      ${d.date ? `<span class="tag tag-date">${esc(d.date)}</span>` : ''}
+      ${d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('')}
     </div>` : ''}
   </div>
 
