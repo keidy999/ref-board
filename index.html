@@ -708,6 +708,10 @@ select option { background: #fff; }
         <datalist id="catSuggest"></datalist>
       </div>
       <div class="form-group">
+        <label>날짜</label>
+        <input class="form-input" id="fDate" type="date">
+      </div>
+      <div class="form-group">
         <label>코멘트</label>
         <textarea class="form-input" id="fComment" placeholder="이 레퍼런스에 대한 메모나 포인트..."></textarea>
       </div>
@@ -1257,6 +1261,7 @@ function openFormModal(rowIndex) {
   if (!rowIndex) {
     ['fUrl','fTitle','fTs','fPerson','fCat','fComment'].forEach(id =>
       document.getElementById(id).value = '');
+    document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
     document.getElementById('thumbPreview').style.display = 'none';
   }
   document.getElementById('formSubmitBtn').textContent = '저장';
@@ -1313,9 +1318,8 @@ async function submitForm() {
   const person  = document.getElementById('fPerson').value.trim();
   const cat     = document.getElementById('fCat').value.trim();
   const comment = document.getElementById('fComment').value.trim();
-  const today   = new Date().toLocaleDateString('ko-KR',
-    { year:'numeric', month:'2-digit', day:'2-digit' })
-    .replace(/\. /g,'-').replace('.','').trim();
+  const date    = document.getElementById('fDate').value.trim() ||
+                  new Date().toISOString().slice(0,10);
   const id = Date.now().toString(36).toUpperCase();
 
   const btn = document.getElementById('formSubmitBtn');
@@ -1328,7 +1332,7 @@ async function submitForm() {
       range: `${sheetName}!A:H`,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
-      resource: { values: [[id, title, url, ts, person, cat, comment, today]] }
+      resource: { values: [[id, title, url, ts, person, cat, comment, date]] }
     });
     toast('저장됐어요! ✓', 'ok');
     closeForm();
