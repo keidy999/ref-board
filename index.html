@@ -219,8 +219,6 @@ a { color: var(--accent2); }
 }
 .search-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .filter-select {
   background: var(--surface2);
@@ -240,7 +238,36 @@ a { color: var(--accent2); }
   background-position: right 10px center;
   padding-right: 28px;
 }
-.filter-select:focus { outline: none; border-color: var(--accent); }
+.filter-select:focus { outline: none; }
+.filter-select-hidden { display: none; }
+.dd { position: relative; display: inline-block; }
+.dd-btn { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dd-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 160px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  z-index: 200;
+  padding: 4px;
+}
+.dd-menu.open { display: block; }
+.dd-item {
+  padding: 7px 10px;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text2);
+  white-space: nowrap;
+}
+.dd-item:hover { background: var(--surface2); color: var(--text); }
+.dd-item.selected { background: var(--surface2); color: var(--text); font-weight: 700; }
 
 /* Buttons */
 .btn {
@@ -399,12 +426,12 @@ a { color: var(--accent2); }
 .meta-icon-btn:active { transform: scale(0.92); }
 .meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
 
-/* Extra panel (comment only) — 💬 클릭 시 카드 "위쪽"에 뜨는, 검정 테두리 상자 그 자체.
+/* Extra panel (comment only) — 💬 클릭 시 영상 썸네일 위에 겹쳐서 뜨는 검정 테두리 상자 그 자체.
    카드 자체 높이엔 영향을 주지 않아 그리드 정렬이 항상 유지됨. */
 .card-extra {
   display: none;
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: 0;
   left: 0;
   right: 0;
   z-index: 30;
@@ -498,8 +525,6 @@ a { color: var(--accent2); }
 }
 .form-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 textarea.form-input { resize: vertical; min-height: 80px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -519,11 +544,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   border-radius: var(--radius-lg);
   padding: 7px 10px;
   cursor: text;
-  transition: border-color var(--dur), box-shadow var(--dur);
-}
-.tag-box:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .tag-chip-list { display: contents; }
 .tag-chip {
@@ -707,12 +727,20 @@ select option { background: var(--surface); color: var(--text2); }
       </svg>
       <input class="search-input" id="searchInput" placeholder="제목, 코멘트 검색..." oninput="filterCards()">
     </div>
-    <select class="filter-select" id="personFilter" onchange="filterCards()">
-      <option value="">👤 전체</option>
-    </select>
-    <select class="filter-select" id="catFilter" onchange="filterCards()">
-      <option value="">🏷 전체 태그</option>
-    </select>
+    <div class="dd" id="personFilterDd">
+      <select class="filter-select-hidden" id="personFilter" onchange="filterCards()" tabindex="-1">
+        <option value="">👤 전체</option>
+      </select>
+      <button type="button" class="filter-select dd-btn" id="personFilterBtn" onclick="toggleDropdown('personFilterDd')">👤 전체</button>
+      <div class="dd-menu" id="personFilterMenu"></div>
+    </div>
+    <div class="dd" id="catFilterDd">
+      <select class="filter-select-hidden" id="catFilter" onchange="filterCards()" tabindex="-1">
+        <option value="">🏷 전체 태그</option>
+      </select>
+      <button type="button" class="filter-select dd-btn" id="catFilterBtn" onclick="toggleDropdown('catFilterDd')">🏷 전체 태그</button>
+      <div class="dd-menu" id="catFilterMenu"></div>
+    </div>
     <button class="btn" onclick="openFormModal()">+ 추가</button>
     <button class="btn-icon" onclick="toggleTheme()" id="themeToggleBtn" title="다크모드 전환">
       <span id="themeToggleIcon">🌙</span>
@@ -1158,7 +1186,47 @@ function rebuildFilters() {
   cf.innerHTML = '<option value="">🏷 전체 태그</option>' +
     cats.map(c => `<option${c===selC?' selected':''}>${escQ(c)}</option>`).join('');
   ps.innerHTML = persons.map(p => `<option value="${escQ(p)}">`).join('');
+
+  renderDdMenu('personFilter', persons, '👤 전체', p => p);
+  renderDdMenu('catFilter', cats, '🏷 전체 태그', c => c);
 }
+
+// 커스텀 드롭다운(전체 인원/전체 태그) — 네이티브 select 팝업이 아니라 우리가 직접 위치·높이를
+// 제어하므로, 선택된 항목 위치에 따라 목록이 화면 밖으로 잘려서 뜨는 문제가 생기지 않는다.
+function renderDdMenu(kind, items, allLabel, itemLabelFn) {
+  const hidden = document.getElementById(kind);
+  const sel = hidden.value;
+  const menu = document.getElementById(kind + 'Menu');
+  const btn = document.getElementById(kind + 'Btn');
+  const rows = [{ v: '', l: allLabel }].concat(items.map(it => ({ v: it, l: itemLabelFn(it) })));
+  menu.innerHTML = rows.map(r =>
+    `<div class="dd-item${sel===r.v?' selected':''}" onclick="selectFilterOption('${kind}','${escQ(r.v)}','${escQ(r.l)}',this)">${esc(r.l)}</div>`
+  ).join('');
+  btn.textContent = sel ? itemLabelFn(sel) : allLabel;
+}
+
+function toggleDropdown(ddId) {
+  const menu = document.querySelector('#' + ddId + ' .dd-menu');
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.dd-menu.open').forEach(m => m.classList.remove('open'));
+  if (!isOpen) menu.classList.add('open');
+}
+
+function selectFilterOption(kind, value, label, el) {
+  document.getElementById(kind).value = value;
+  document.getElementById(kind + 'Btn').textContent = label;
+  const menu = el.closest('.dd-menu');
+  menu.querySelectorAll('.dd-item').forEach(i => i.classList.remove('selected'));
+  el.classList.add('selected');
+  menu.classList.remove('open');
+  filterCards();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dd')) {
+    document.querySelectorAll('.dd-menu.open').forEach(m => m.classList.remove('open'));
+  }
+});
 
 function filterCards() {
   const q   = document.getElementById('searchInput').value.toLowerCase();
@@ -1590,7 +1658,10 @@ function handleErr(e) {
 
 // ESC to close modals
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeForm(); closeEditModal(); }
+  if (e.key === 'Escape') {
+    closeForm(); closeEditModal();
+    document.querySelectorAll('.dd-menu.open').forEach(m => m.classList.remove('open'));
+  }
 });
 </script>
 </body>
