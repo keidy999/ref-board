@@ -360,7 +360,7 @@ a { color: var(--accent2); }
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.4;
-  min-height: calc(1.4em * 2);
+  height: calc(1.4em * 2);
   margin-bottom: 8px;
   color: var(--text);
   display: -webkit-box;
@@ -369,10 +369,18 @@ a { color: var(--accent2); }
   overflow: hidden;
 }
 
+/* 태그: 제목과 날짜/작성자 사이, 한 줄 고정(카드 높이가 태그 개수에 따라 달라지지 않도록) */
+.card-tags-row {
+  display: flex; align-items: center; flex-wrap: nowrap;
+  gap: 5px; height: 22px; overflow: hidden;
+  margin-bottom: 8px;
+}
+
 /* Meta row: 날짜 / 작성자 / 💬 / ✏️ — 모든 카드 동일 높이 */
 .card-meta-row {
   display: flex; align-items: center; gap: 8px;
   font-size: 0.78rem; color: var(--text3);
+  height: 22px;
 }
 .meta-date, .meta-person {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -389,7 +397,7 @@ a { color: var(--accent2); }
 .meta-icon-btn:active { transform: scale(0.92); }
 .meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
 
-/* Extra panel (comment + tags) — 💬 클릭 시 구글시트 메모처럼 카드 위에 떠서 나타남.
+/* Extra panel (comment only) — 💬 클릭 시 구글시트 메모처럼 카드 위에 떠서 나타남.
    카드 자체 높이엔 영향을 주지 않아 그리드 정렬이 항상 유지됨. */
 .card-extra {
   display: none;
@@ -419,10 +427,6 @@ a { color: var(--accent2); }
 }
 .card-extra-close:hover { background: var(--surface2); color: var(--text); }
 
-.card-meta {
-  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
-  margin-top: 8px;
-}
 .tag {
   font-size: 0.72rem; padding: 3px 9px;
   border-radius: var(--radius-pill); white-space: nowrap;
@@ -430,32 +434,22 @@ a { color: var(--accent2); }
   background: var(--surface2);
   color: var(--text3);
   border: none;
+  flex-shrink: 0;
 }
 
-/* Comment */
-.comment-box {
-  background: var(--surface2);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+/* Comment — 읽기 전용 표시. 수정은 ✏️ 수정 모달에서만 가능 */
+.comment-view {
+  background: var(--surface);
+  border: 1px solid #000;
+  border-radius: 0;
   padding: 8px 10px;
   font-size: 0.82rem;
-  font-family: inherit;
   color: var(--text2);
-  cursor: text;
   min-height: 38px;
   line-height: 1.6;
-  transition: border-color var(--dur), background var(--dur);
-  outline: none;
   word-break: break-word;
 }
-.comment-box:focus {
-  border-color: var(--accent);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-.comment-box.saving { border-color: var(--yellow); }
-.comment-box.saved { border-color: var(--green); }
-.comment-placeholder { color: var(--text3); font-style: italic; pointer-events: none; }
+.comment-placeholder { color: var(--text3); font-style: italic; }
 
 /* ── MODAL ───────────────────────────────────────── */
 .overlay {
@@ -1235,28 +1229,21 @@ function renderCards(data) {
 
   <div class="card-body">
     <div class="card-title">${safeTitle}</div>
+    <div class="card-tags-row">
+      ${d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('') : ''}
+    </div>
     <div class="card-meta-row">
       <span class="meta-date">${d.date ? esc(d.date) : ''}</span>
       <span class="meta-person">${d.person ? esc(d.person) : ''}</span>
-      <button type="button" class="meta-icon-btn" onclick="toggleExtra(this)" title="코멘트/태그 보기">💬</button>
+      <button type="button" class="meta-icon-btn" onclick="toggleExtra(this)" title="코멘트 보기">💬</button>
       <button type="button" class="meta-icon-btn" onclick="openEditModal(${d.rowIndex})" title="수정">✏️</button>
     </div>
     <div class="card-extra">
       <div class="card-extra-hd">
-        <span class="card-extra-title">코멘트 · 태그</span>
+        <span class="card-extra-title">코멘트</span>
         <button type="button" class="card-extra-close" onclick="closeExtra(this)" title="닫기">✕</button>
       </div>
-      <div class="comment-box"
-           contenteditable="true"
-           data-row="${d.rowIndex}"
-           data-saved="${safeComment}"
-           onfocus="onCommentFocus(this)"
-           onblur="saveComment(this)"
-           >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
-      ${d.cat ? `
-      <div class="card-meta">
-        ${d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('')}
-      </div>` : ''}
+      <div class="comment-view">${safeComment || '<span class="comment-placeholder">코멘트 없음</span>'}</div>
     </div>
   </div>
 </div>`;
@@ -1550,48 +1537,6 @@ function focusTagInputBox(boxId) {
 function getTagValue(boxId) {
   const state = tagBoxState[boxId];
   return state ? state.tags.join(', ') : '';
-}
-
-// ── INLINE COMMENT ─────────────────────────────────────────
-function onCommentFocus(el) {
-  const placeholder = el.querySelector('.comment-placeholder');
-  if (placeholder) el.innerHTML = '';
-}
-
-async function saveComment(el) {
-  const rowIndex = parseInt(el.dataset.row);
-  const saved    = el.dataset.saved || '';
-  const raw      = el.innerHTML.trim();
-  // Strip any placeholder spans
-  const newVal = el.innerText.trim().replace(/^코멘트 추가\.\.\. \(클릭해서 편집\)$/, '');
-
-  if (newVal === saved) {
-    if (!newVal) el.innerHTML = '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>';
-    return;
-  }
-
-  el.classList.add('saving');
-  try {
-    await gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `${sheetName}!G${rowIndex}`,
-      valueInputOption: 'RAW',
-      resource: { values: [[newVal]] }
-    });
-    el.dataset.saved = newVal;
-    el.classList.remove('saving');
-    el.classList.add('saved');
-    setTimeout(() => el.classList.remove('saved'), 1500);
-    toast('코멘트 저장됨 ✓', 'ok');
-    const item = allData.find(d => d.rowIndex === rowIndex);
-    if (item) item.comment = newVal;
-    if (!newVal) el.innerHTML = '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>';
-  } catch(e) {
-    el.classList.remove('saving');
-    el.innerHTML = saved || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>';
-    el.dataset.saved = saved;
-    handleErr(e);
-  }
 }
 
 // ── UTILS ──────────────────────────────────────────────────
