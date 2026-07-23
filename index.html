@@ -3,7 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎬 Video Reference Board</title>
+<title>🌳 CP Reference Board</title>
+<script>
+// 저장된 테마(또는 시스템 설정)를 CSS가 그려지기 전에 즉시 적용해 화면 깜빡임을 방지
+(function () {
+  try {
+    var saved = localStorage.getItem('vrb_theme');
+    var isDark = saved ? saved === 'dark'
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+  } catch (e) {}
+})();
+</script>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT/fonts/variable/woff2/SUIT-Variable.css">
 <style>
@@ -43,6 +54,29 @@
   --dur: 0.2s;
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+:root[data-theme="dark"] {
+  --bg: #0D0F13;
+  --surface: #16181D;
+  --surface2: #1E2127;
+  --surface3: #262A31;
+  --border: #262A31;
+  --border2: #383D47;
+  --accent: #5B8DEF;
+  --accent-soft: rgba(91, 141, 239, 0.16);
+  --accent2: #A78BDB;
+  --accent2-soft: rgba(167, 139, 219, 0.16);
+  --text: #F2F3F5;
+  --text2: #C2C6CC;
+  --text3: #7E838C;
+  --green: #5FD98A;
+  --red: #FF7272;
+  --yellow: #F3BB3D;
+  --shadow-card: 0px 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0px 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme="dark"] body { color-scheme: dark; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { overflow-y: scroll; }
 body {
@@ -240,37 +274,27 @@ a { color: var(--accent2); }
 }
 .btn-icon:hover { background: var(--surface3); color: var(--text2); }
 
-/* Stats bar */
-.stats-bar {
-  padding: 9px 20px;
-  font-size: 0.8rem;
-  color: var(--text3);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface);
-}
-.stats-bar strong { color: var(--text2); }
-.sheets-link, .sheets-link:visited, .sheets-link:hover { color: var(--text3) !important; text-decoration: none; font-weight: 500; font-size: 0.8rem; }
-
 /* ── CARDS ───────────────────────────────────────── */
 .grid {
   padding: 20px;
-  column-count: 4;
-  column-gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: start;
   min-height: 100vh;
 }
 @media (max-width: 1200px) {
-  .grid { column-count: 3; }
+  .grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 860px) {
-  .grid { column-count: 2; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 520px) {
-  .grid { column-count: 1; }
+  .grid { grid-template-columns: 1fr; }
 }
 .card {
-  break-inside: avoid;
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -339,11 +363,12 @@ a { color: var(--accent2); }
 .no-thumb svg { opacity: 0.25; }
 
 /* Card body */
-.card-body { padding: 14px 16px; }
+.card-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; }
 .card-title {
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.4;
+  min-height: calc(1.4em * 2);
   margin-bottom: 8px;
   color: var(--text);
   display: -webkit-box;
@@ -351,6 +376,31 @@ a { color: var(--accent2); }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Meta row: 날짜 / 작성자 / 💬 / ✏️ — 모든 카드 동일 높이 */
+.card-meta-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.78rem; color: var(--text3);
+}
+.meta-date, .meta-person {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.meta-person { max-width: 100px; }
+.meta-icon-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.95rem; padding: 2px 4px; line-height: 1;
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur), transform var(--dur);
+}
+.meta-icon-btn:hover { background: var(--surface2); }
+.meta-icon-btn:active { transform: scale(0.92); }
+.meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
+
+/* Extra panel (comment + tags) — 💬 클릭 시에만 표시, 기본 카드 크기엔 영향 없음 */
+.card-extra { display: none; margin-top: 10px; }
+.card-extra.open { display: block; }
+
 .card-meta {
   display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
   margin-top: 8px;
@@ -363,15 +413,6 @@ a { color: var(--accent2); }
   color: var(--text3);
   border: none;
 }
-.tag-person { }
-.tag-cat { }
-.card-person {
-  font-size: 0.78rem;
-  color: var(--text3);
-  margin-top: 4px;
-  margin-bottom: 6px;
-}
-.tag-date { margin-left: auto; font-size: 0.7rem; }
 
 /* Comment */
 .comment-box {
@@ -397,28 +438,6 @@ a { color: var(--accent2); }
 .comment-box.saving { border-color: var(--yellow); }
 .comment-box.saved { border-color: var(--green); }
 .comment-placeholder { color: var(--text3); font-style: italic; pointer-events: none; }
-
-/* Card footer */
-.card-footer {
-  padding: 9px 16px;
-  border-top: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--surface2);
-}
-.card-edit-btn {
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 0.78rem; padding: 3px 7px;
-  border-radius: var(--radius-sm); font-family: inherit;
-  transition: color var(--dur), background var(--dur);
-}
-.card-edit-btn:hover { color: var(--text2); background: var(--surface3); }
-.card-link {
-  font-size: 0.75rem; color: var(--text3);
-  text-decoration: none;
-  display: flex; align-items: center; gap: 4px;
-  font-weight: 500;
-}
-.card-link:hover { color: var(--sr-sky); }
 
 /* ── MODAL ───────────────────────────────────────── */
 .overlay {
@@ -460,14 +479,6 @@ a { color: var(--accent2); }
 }
 .modal-x:hover { background: var(--surface3); color: var(--text); }
 
-/* Video modal */
-#videoModal .modal { max-width: 900px; }
-.video-wrap {
-  aspect-ratio: 16/9;
-  background: #000;
-}
-.video-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
-
 /* Form modal */
 #formModal .modal { max-width: 520px; max-height: 90vh; overflow-y: auto; }
 .form-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
@@ -498,6 +509,61 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 }
 .thumb-preview-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .form-hint { font-size: 0.75rem; color: var(--text3); }
+
+/* Tag chip input */
+.tag-box {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 7px 10px;
+  cursor: text;
+  transition: border-color var(--dur), box-shadow var(--dur);
+}
+.tag-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.tag-chip-list { display: contents; }
+.tag-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 0.8rem; font-weight: 600;
+  padding: 3px 6px 3px 10px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.tag-chip-x {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: 0.9rem; line-height: 1;
+  padding: 0 2px; font-family: inherit;
+}
+.tag-chip-x:hover { color: var(--red); }
+.tag-raw-input {
+  flex: 1; min-width: 90px;
+  border: none; outline: none;
+  background: transparent;
+  font-family: inherit; font-size: 0.875rem;
+  color: var(--text);
+  padding: 3px 2px;
+}
+.tag-suggest-box {
+  display: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  margin-top: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.tag-suggest-item {
+  padding: 7px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--text2);
+}
+.tag-suggest-item:hover { background: var(--surface2); color: var(--text); }
 .form-footer {
   padding: 14px 20px;
   border-top: 1px solid var(--border);
@@ -507,7 +573,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 /* Empty / Loading */
 .empty-state {
-  column-span: all;
+  grid-column: 1 / -1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 80px 24px;
@@ -517,7 +583,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .empty-icon { font-size: 3rem; }
 .empty-state p { max-width: 300px; line-height: 1.6; color: var(--text3); }
 .spinner {
-  column-span: all;
+  grid-column: 1 / -1;
   text-align: center; padding: 60px;
   color: var(--text3);
 }
@@ -552,7 +618,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 /* Misc */
 input::placeholder, textarea::placeholder { color: var(--text3); }
-select option { background: #fff; }
+select option { background: var(--surface); color: var(--text2); }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
@@ -581,8 +647,8 @@ select option { background: #fff; }
 
 <!-- ── AUTH SCREEN ──────────────────────────────────── -->
 <div id="authScreen" class="screen active">
-  <div class="logo">🎬</div>
-  <h1>Video Reference Board</h1>
+  <div class="logo">🌳</div>
+  <h1>CP Reference Board</h1>
   <p>유튜브 레퍼런스를 썸네일·타임스탬프·코멘트와 함께 시각적으로 정리하세요</p>
 
   <div id="setupBanner" class="setup-banner" style="display:none">
@@ -632,7 +698,7 @@ select option { background: #fff; }
   <div class="sticky-top">
   <div class="header">
     <div class="header-logo" onclick="loadData()" title="새로고침">
-      <span>Ref<span class="grad-text">Board</span></span>
+      <span>🌳 CP <span class="grad-text">Reference Board</span></span>
     </div>
     <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -647,33 +713,19 @@ select option { background: #fff; }
       <option value="">🏷 전체 태그</option>
     </select>
     <button class="btn" onclick="openFormModal()">+ 추가</button>
+    <button class="btn-icon" onclick="toggleTheme()" id="themeToggleBtn" title="다크모드 전환">
+      <span id="themeToggleIcon">🌙</span>
+    </button>
     <button class="btn-icon" onclick="loadData()" title="새로고침">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.9"/>
       </svg>
     </button>
   </div>
-
-  <div class="stats-bar" id="statsBar">
-    레퍼런스 불러오는 중...
-  </div>
   </div><!-- /sticky-top -->
 
   <div class="grid" id="grid">
     <div class="spinner"><div class="spin"></div></div>
-  </div>
-</div>
-
-<!-- ── VIDEO MODAL ──────────────────────────────────── -->
-<div class="overlay" id="videoModal" onclick="maybeCloseVideo(event)">
-  <div class="modal">
-    <div class="modal-hd">
-      <h3 id="videoTitle" style="font-size:0.9rem"></h3>
-      <button class="modal-x" onclick="closeVideo()">✕</button>
-    </div>
-    <div class="video-wrap">
-      <iframe id="videoFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-    </div>
   </div>
 </div>
 
@@ -711,8 +763,15 @@ select option { background: #fff; }
       </div>
       <div class="form-group">
         <label>카테고리 / 태그</label>
-        <input class="form-input" id="fCat" placeholder="예: 무드, 편집, 색보정..." list="catSuggest" autocomplete="off">
-        <datalist id="catSuggest"></datalist>
+        <div class="tag-box" id="fCatBox" onclick="focusTagInputBox('fCatBox')">
+          <span class="tag-chip-list" id="fCatBoxChipList"></span>
+          <input class="tag-raw-input" id="fCatBoxRawInput" placeholder="태그 입력 후 Enter" autocomplete="off"
+            oninput="onTagInputChange('fCatBox')"
+            onkeydown="onTagInputKeydown(event,'fCatBox')"
+            onblur="setTimeout(()=>hideTagSuggest('fCatBox'),150)">
+        </div>
+        <div class="tag-suggest-box" id="fCatBoxSuggestBox"></div>
+        <div class="form-hint">Enter 또는 콤마(,)로 태그 추가 · Backspace로 마지막 태그 삭제</div>
       </div>
       <div class="form-group">
         <label>날짜</label>
@@ -740,7 +799,14 @@ select option { background: #fff; }
     <div class="form-body">
       <div class="form-group">
         <label>카테고리 / 태그</label>
-        <input class="form-input" id="eCat" placeholder="예: 무드, 편집, 색보정..." autocomplete="off">
+        <div class="tag-box" id="eCatBox" onclick="focusTagInputBox('eCatBox')">
+          <span class="tag-chip-list" id="eCatBoxChipList"></span>
+          <input class="tag-raw-input" id="eCatBoxRawInput" placeholder="태그 입력 후 Enter" autocomplete="off"
+            oninput="onTagInputChange('eCatBox')"
+            onkeydown="onTagInputKeydown(event,'eCatBox')"
+            onblur="setTimeout(()=>hideTagSuggest('eCatBox'),150)">
+        </div>
+        <div class="tag-suggest-box" id="eCatBoxSuggestBox"></div>
       </div>
       <div class="form-group">
         <label>날짜</label>
@@ -803,9 +869,33 @@ window.addEventListener('load', () => {
   if (CLIENT_ID === 'YOUR_CLIENT_ID') {
     document.getElementById('setupBanner').style.display = 'block';
   }
+  applyThemeIcon();
   loadGapi();
   loadGis();
 });
+
+// ── THEME (다크모드/라이트모드) ───────────────────────────────
+// 실제 적용은 <head>의 인라인 스크립트가 렌더링 전에 이미 처리함(깜빡임 방지).
+// 여기서는 버튼 클릭 시 전환 + localStorage 저장, 아이콘 동기화만 담당.
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('vrb_theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('vrb_theme', 'dark');
+  }
+  applyThemeIcon();
+}
+function applyThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const icon = document.getElementById('themeToggleIcon');
+  if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.title = isDark ? '라이트모드로 전환' : '다크모드로 전환';
+}
+applyThemeIcon(); // 버튼이 이미 DOM에 있으므로 load 이벤트를 기다리지 않고 바로 아이콘 동기화
 
 function loadGapi() {
   const s = document.createElement('script');
@@ -903,7 +993,7 @@ async function createNewSheet() {
   toast('새 스프레드시트 생성 중...');
   try {
     const res = await gapi.client.sheets.spreadsheets.create({
-      properties: { title: '🎬 Video Reference Board' },
+      properties: { title: '🌳 CP Reference Board' },
       sheets: [{ properties: { title: '레퍼런스' } }]
     });
     sheetId = res.result.spreadsheetId;
@@ -914,7 +1004,7 @@ async function createNewSheet() {
       resource: {
         valueInputOption: 'USER_ENTERED',
         data: [
-          { range: `${sheetName}!A1`, values: [['=HYPERLINK("https://keidy999.github.io/ref-board/","🎬 RefBoard 열기")']] },
+          { range: `${sheetName}!A1`, values: [['=HYPERLINK("https://keidy999.github.io/ref-board/","🌳 CP Board 열기")']] },
           { range: `${sheetName}!A2:H2`, values: [HEADER_ROW] }
         ]
       }
@@ -930,7 +1020,7 @@ async function createNewSheet() {
 
 async function ensureHeader() {
   const SITE_URL = 'https://keidy999.github.io/ref-board/';
-  const LINK_FORMULA = `=HYPERLINK("${SITE_URL}","🎬 RefBoard 열기")`;
+  const LINK_FORMULA = `=HYPERLINK("${SITE_URL}","🌳 CP Board 열기")`;
   try {
     const res = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: sheetId, range: `${sheetName}!A1:A2`
@@ -1020,7 +1110,6 @@ async function loadData() {
   if (cf) cf.value = '';
 
   document.getElementById('grid').innerHTML = '<div class="spinner"><div class="spin"></div></div>';
-  document.getElementById('statsBar').textContent = '불러오는 중...';
   try {
     const res = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -1051,14 +1140,16 @@ async function loadData() {
 }
 
 // ── FILTERS ────────────────────────────────────────────────
+let allCatsList = [];
+
 function rebuildFilters() {
   const persons = unique(allData.map(d => d.person).filter(Boolean));
   const cats    = unique(allData.flatMap(d => d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean) : []));
+  allCatsList = cats;
 
   const pf = document.getElementById('personFilter');
   const cf = document.getElementById('catFilter');
   const ps = document.getElementById('personSuggest');
-  const cs = document.getElementById('catSuggest');
 
   const selP = pf.value, selC = cf.value;
   pf.innerHTML = '<option value="">👤 전체</option>' +
@@ -1066,7 +1157,6 @@ function rebuildFilters() {
   cf.innerHTML = '<option value="">🏷 전체 태그</option>' +
     cats.map(c => `<option${c===selC?' selected':''}>${escQ(c)}</option>`).join('');
   ps.innerHTML = persons.map(p => `<option value="${escQ(p)}">`).join('');
-  cs.innerHTML = cats.map(c => `<option value="${escQ(c)}">`).join('');
 }
 
 function filterCards() {
@@ -1084,10 +1174,6 @@ function filterCards() {
 
 // ── RENDER ─────────────────────────────────────────────────
 function renderCards(data) {
-  const sb = document.getElementById('statsBar');
-  sb.innerHTML = `<span><strong>${data.length}</strong>개 레퍼런스</span>` +
-    `<a href="https://docs.google.com/spreadsheets/d/${sheetId}/edit" target="_blank" class="sheets-link" style="margin-left:auto;">Google Sheets 열기 ↗</a>`;
-
   if (!data.length) {
     document.getElementById('grid').innerHTML = `
       <div class="empty-state">
@@ -1106,14 +1192,13 @@ function renderCards(data) {
     const secs  = tsToSec(d.ts);
     const safeTitle = esc(d.title || d.url);
     const safeComment = esc(d.comment);
-    const safeUrl = escQ(d.url);
-    const thumbClick = vid
-      ? `openVideo('${vid}',${secs},'${esc(d.title)}')`
-      : insta ? `openInsta(this)` : '';
+    // 새 탭 재생이 기본: 유튜브면 타임스탬프를 포함한 watch URL, 그 외엔 원본 URL 그대로 새 탭으로
+    const openUrl = (vid && secs) ? `https://www.youtube.com/watch?v=${vid}&t=${secs}s` : d.url;
+    const safeOpenUrl = escQ(openUrl);
 
     return `
 <div class="card" data-row="${d.rowIndex}">
-  <div class="card-thumb" data-url="${safeUrl}" ${thumbClick ? `onclick="${thumbClick}"` : 'style="cursor:default"'}>
+  <div class="card-thumb" onclick="window.open('${safeOpenUrl}','_blank')">
     ${thumb
       ? `<img src="${thumb}" alt="" loading="lazy"
              onerror="this.parentNode.innerHTML='<div class=\\'no-thumb\\'><svg width=32 height=32 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'1.5\\'><path d=\\'M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z\\'/></svg><span>썸네일 없음</span></div>'">`
@@ -1125,61 +1210,41 @@ function renderCards(data) {
         : `<div class="no-thumb"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg><span>썸네일 없음</span></div>`
     }
     <div class="thumb-overlay">
-      <div class="play-circle">${insta ? '↗' : '▶'}</div>
+      <div class="play-circle">${vid ? '▶' : '↗'}</div>
     </div>
     ${d.ts ? `<div class="ts-badge">${esc(d.ts)}</div>` : ''}
   </div>
 
   <div class="card-body">
     <div class="card-title">${safeTitle}</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-      ${d.person ? `<div class="card-person">👤 ${esc(d.person)}</div>` : '<div></div>'}
-      ${d.date ? `<span style="flex-shrink:0;font-size:0.75rem;color:var(--text3);">${esc(d.date)}</span>` : ''}
+    <div class="card-meta-row">
+      <span class="meta-date">${d.date ? esc(d.date) : ''}</span>
+      <span class="meta-person">${d.person ? esc(d.person) : ''}</span>
+      <button type="button" class="meta-icon-btn" onclick="toggleExtra(this)" title="코멘트/태그 보기">💬</button>
+      <button type="button" class="meta-icon-btn" onclick="openEditModal(${d.rowIndex})" title="수정">✏️</button>
     </div>
-    <div class="comment-box"
-         contenteditable="true"
-         data-row="${d.rowIndex}"
-         data-saved="${safeComment}"
-         onfocus="onCommentFocus(this)"
-         onblur="saveComment(this)"
-         >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
-    ${d.cat ? `
-    <div class="card-meta">
-      ${d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('')}
-    </div>` : ''}
-  </div>
-
-  <div class="card-footer">
-    <a class="card-link" href="${safeUrl}" target="_blank">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-      </svg>
-      새 탭에서 열기
-    </a>
-    <button class="card-edit-btn" onclick="openEditModal(${d.rowIndex})">✏️ 수정</button>
+    <div class="card-extra">
+      <div class="comment-box"
+           contenteditable="true"
+           data-row="${d.rowIndex}"
+           data-saved="${safeComment}"
+           onfocus="onCommentFocus(this)"
+           onblur="saveComment(this)"
+           >${safeComment || '<span class="comment-placeholder">코멘트 추가... (클릭해서 편집)</span>'}</div>
+      ${d.cat ? `
+      <div class="card-meta">
+        ${d.cat.split(',').map(c=>c.trim()).filter(Boolean).map(c=>`<span class="tag tag-cat">${esc(c)}</span>`).join('')}
+      </div>` : ''}
+    </div>
   </div>
 </div>`;
   }).join('');
 }
 
-// ── VIDEO MODAL ────────────────────────────────────────────
-function openInsta(el) {
-  const url = el.dataset.url;
-  if (url) window.open(url, '_blank');
-}
-function openVideo(vid, startSec, title) {
-  if (!vid) return;
-  document.getElementById('videoTitle').textContent = decodeEntities(title || '');
-  document.getElementById('videoFrame').src =
-    `https://www.youtube.com/embed/${vid}?start=${startSec}&autoplay=1&rel=0`;
-  document.getElementById('videoModal').classList.add('open');
-}
-function closeVideo() {
-  document.getElementById('videoFrame').src = '';
-  document.getElementById('videoModal').classList.remove('open');
-}
-function maybeCloseVideo(e) {
-  if (e.target === document.getElementById('videoModal')) closeVideo();
+function toggleExtra(btn) {
+  const body = btn.closest('.card-body');
+  const extra = body.querySelector('.card-extra');
+  extra.classList.toggle('open');
 }
 
 // ── EDIT MODAL ─────────────────────────────────────────────
@@ -1189,7 +1254,7 @@ function openEditModal(rowIndex) {
   editingRow = rowIndex;
   const d = allData.find(r => r.rowIndex === rowIndex);
   if (!d) return;
-  document.getElementById('eCat').value     = d.cat     || '';
+  initTagBox('eCatBox', allCatsList, d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean) : []);
   document.getElementById('eDate').value    = d.date    || '';
   document.getElementById('ePerson').value  = d.person  || '';
   document.getElementById('eComment').value = d.comment || '';
@@ -1208,7 +1273,7 @@ function openEditModal(rowIndex) {
   `).join('');
 
   document.getElementById('editModal').classList.add('open');
-  setTimeout(() => document.getElementById('eCat').focus(), 80);
+  setTimeout(() => document.getElementById('eCatBoxRawInput').focus(), 80);
 }
 
 function selectPerson(name) {
@@ -1234,7 +1299,7 @@ async function saveEditModal() {
   const btn = document.getElementById('editSubmitBtn');
   btn.textContent = '저장 중...';
   btn.disabled = true;
-  const cat     = document.getElementById('eCat').value.trim();
+  const cat     = getTagValue('eCatBox');
   const date    = document.getElementById('eDate').value.trim();
   const person  = document.getElementById('ePerson').value.trim();
   const comment = document.getElementById('eComment').value.trim();
@@ -1268,8 +1333,9 @@ function openFormModal(rowIndex) {
   document.getElementById('formTitle').textContent =
     rowIndex ? '레퍼런스 편집' : '새 레퍼런스 추가';
   if (!rowIndex) {
-    ['fUrl','fTitle','fTs','fPerson','fCat','fComment'].forEach(id =>
+    ['fUrl','fTitle','fTs','fPerson','fComment'].forEach(id =>
       document.getElementById(id).value = '');
+    initTagBox('fCatBox', allCatsList, []);
     document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
     document.getElementById('thumbPreview').style.display = 'none';
   }
@@ -1325,7 +1391,7 @@ async function submitForm() {
   const title   = document.getElementById('fTitle').value.trim();
   const ts      = document.getElementById('fTs').value.trim();
   const person  = document.getElementById('fPerson').value.trim();
-  const cat     = document.getElementById('fCat').value.trim();
+  const cat     = getTagValue('fCatBox');
   const comment = document.getElementById('fComment').value.trim();
   const date    = document.getElementById('fDate').value.trim() ||
                   new Date().toISOString().slice(0,10);
@@ -1352,6 +1418,106 @@ async function submitForm() {
     btn.textContent = '저장';
     btn.disabled = false;
   }
+}
+
+// ── TAG CHIP INPUT ───────────────────────────────────────────
+// 태그를 콤마 하나의 input에 이어 쓰지 않고, 태그별로 별도 칩으로 관리한다.
+// 이렇게 하면 두 번째 태그부터도 자동완성이 정상 동작한다(항상 "현재 입력 중인
+// 한 개의 태그"만 가지고 매칭하기 때문).
+const tagBoxState = {};
+
+function initTagBox(boxId, allTags, initialTags) {
+  tagBoxState[boxId] = { tags: (initialTags || []).slice(), allTags: (allTags || []).slice() };
+  renderTagChips(boxId);
+  const input = document.getElementById(boxId + 'RawInput');
+  if (input) input.value = '';
+  hideTagSuggest(boxId);
+}
+
+function renderTagChips(boxId) {
+  const state = tagBoxState[boxId];
+  const listEl = document.getElementById(boxId + 'ChipList');
+  if (!state || !listEl) return;
+  listEl.innerHTML = state.tags.map((t, i) => `
+    <span class="tag-chip">${esc(t)}<button type="button" class="tag-chip-x" onclick="removeTagChip('${boxId}',${i})">×</button></span>
+  `).join('');
+}
+
+function removeTagChip(boxId, idx) {
+  const state = tagBoxState[boxId];
+  if (!state) return;
+  state.tags.splice(idx, 1);
+  renderTagChips(boxId);
+}
+
+function addTagFromInput(boxId) {
+  const state = tagBoxState[boxId];
+  const input = document.getElementById(boxId + 'RawInput');
+  if (!state || !input) return;
+  const val = input.value.trim().replace(/,$/, '').trim();
+  if (val && !state.tags.includes(val)) {
+    state.tags.push(val);
+    renderTagChips(boxId);
+  }
+  input.value = '';
+  hideTagSuggest(boxId);
+}
+
+function onTagInputKeydown(e, boxId) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addTagFromInput(boxId);
+  } else if (e.key === 'Backspace' && !e.target.value) {
+    const state = tagBoxState[boxId];
+    if (state && state.tags.length) {
+      state.tags.pop();
+      renderTagChips(boxId);
+    }
+  }
+}
+
+function onTagInputChange(boxId) {
+  const input = document.getElementById(boxId + 'RawInput');
+  const suggestBox = document.getElementById(boxId + 'SuggestBox');
+  const state = tagBoxState[boxId];
+  if (!input || !suggestBox || !state) return;
+  const q = input.value.trim().toLowerCase();
+  if (!q) { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; return; }
+  const matches = state.allTags.filter(t => t.toLowerCase().includes(q) && !state.tags.includes(t)).slice(0, 8);
+  if (!matches.length) { suggestBox.style.display = 'none'; suggestBox.innerHTML = ''; return; }
+  suggestBox.innerHTML = matches.map(t =>
+    `<div class="tag-suggest-item" onmousedown="pickTagSuggest('${boxId}','${escQ(t)}')">${esc(t)}</div>`
+  ).join('');
+  suggestBox.style.display = 'block';
+}
+
+function pickTagSuggest(boxId, tag) {
+  const state = tagBoxState[boxId];
+  if (!state) return;
+  if (!state.tags.includes(tag)) {
+    state.tags.push(tag);
+    renderTagChips(boxId);
+  }
+  const input = document.getElementById(boxId + 'RawInput');
+  if (input) { input.value = ''; input.focus(); }
+  hideTagSuggest(boxId);
+}
+
+function hideTagSuggest(boxId) {
+  const suggestBox = document.getElementById(boxId + 'SuggestBox');
+  if (!suggestBox) return;
+  suggestBox.style.display = 'none';
+  suggestBox.innerHTML = '';
+}
+
+function focusTagInputBox(boxId) {
+  const input = document.getElementById(boxId + 'RawInput');
+  if (input) input.focus();
+}
+
+function getTagValue(boxId) {
+  const state = tagBoxState[boxId];
+  return state ? state.tags.join(', ') : '';
 }
 
 // ── INLINE COMMENT ─────────────────────────────────────────
@@ -1461,7 +1627,7 @@ function handleErr(e) {
 
 // ESC to close modals
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closeVideo(); closeForm(); }
+  if (e.key === 'Escape') { closeForm(); closeEditModal(); }
 });
 </script>
 </body>
