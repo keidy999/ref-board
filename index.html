@@ -308,6 +308,7 @@ a { color: var(--accent2); }
   grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   align-items: start;
+  align-content: start;
   min-height: 100vh;
 }
 @media (max-width: 1200px) {
@@ -428,7 +429,7 @@ a { color: var(--accent2); }
 .meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
 
 /* Extra panel (comment only) — 💬 버튼 바로 위, 내용 크기에 맞는 작은 검정 테두리 상자로 뜸.
-   카드 자체 높이엔 영향을 주지 않아 그리드 정렬이 항상 유지됨. */
+   💬를 다시 누르거나 바깥을 클릭하면 닫힘. 카드 자체 높이엔 영향을 주지 않음. */
 .card-extra {
   display: none;
   position: absolute;
@@ -440,22 +441,13 @@ a { color: var(--accent2); }
   background: var(--surface);
   border: 1px solid #000;
   border-radius: 0;
-  padding: 7px 20px 7px 8px;
+  padding: 7px 8px;
   font-size: 0.72rem;
   color: var(--text2);
   line-height: 1.5;
   word-break: break-word;
 }
 .card-extra.open { display: block; }
-.card-extra-close {
-  position: absolute;
-  top: 3px; right: 3px;
-  width: 15px; height: 15px;
-  display: flex; align-items: center; justify-content: center;
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 0.68rem; line-height: 1;
-}
-.card-extra-close:hover { color: var(--text); }
 .comment-placeholder { color: var(--text3); font-style: italic; }
 
 .tag {
@@ -1296,14 +1288,41 @@ function renderCards(data) {
       <button type="button" class="meta-icon-btn" onclick="toggleExtra(this)" title="코멘트 보기">💬</button>
       <button type="button" class="meta-icon-btn" onclick="openEditModal(${d.rowIndex})" title="수정">✏️</button>
       <div class="card-extra">
-        <button type="button" class="card-extra-close" onclick="closeExtra(this)" title="닫기">✕</button>
         ${safeComment || '<span class="comment-placeholder">코멘트 없음</span>'}
       </div>
     </div>
   </div>
 </div>`;
   }).join('');
+
+  trimTagOverflow();
 }
+
+// 태그 줄(.card-tags-row)은 한 줄 고정 높이라 태그가 많으면 넘치는 칩을 잘라야 하는데,
+// CSS overflow:hidden만 쓰면 칩이 중간에 뭉텅 잘려서 간격이 이상해 보인다.
+// 그래서 각 칩의 실제 너비를 재서, 줄에 완전히 안 들어가는 칩은 통째로 숨긴다.
+function trimTagOverflow() {
+  document.querySelectorAll('.card-tags-row').forEach(row => {
+    const chips = row.querySelectorAll('.tag');
+    if (!chips.length) return;
+    chips.forEach(c => c.style.display = '');
+    const limit = row.clientWidth;
+    let used = 0;
+    chips.forEach(chip => {
+      used += chip.offsetWidth;
+      if (used > limit) {
+        chip.style.display = 'none';
+      } else {
+        used += 5; // gap
+      }
+    });
+  });
+}
+let tagTrimResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(tagTrimResizeTimer);
+  tagTrimResizeTimer = setTimeout(trimTagOverflow, 150);
+});
 
 function toggleExtra(btn) {
   const body = btn.closest('.card-body');
@@ -1311,9 +1330,6 @@ function toggleExtra(btn) {
   const willOpen = !extra.classList.contains('open');
   document.querySelectorAll('.card-extra.open').forEach(el => { if (el !== extra) el.classList.remove('open'); });
   extra.classList.toggle('open', willOpen);
-}
-function closeExtra(btn) {
-  btn.closest('.card-extra').classList.remove('open');
 }
 // 팝오버 바깥을 클릭하면 자동으로 닫힘 (💬 버튼 자체 클릭은 toggleExtra가 처리하므로 제외)
 document.addEventListener('click', e => {
