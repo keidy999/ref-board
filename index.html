@@ -278,34 +278,29 @@ a { color: var(--accent2); }
 .grid {
   padding: 20px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   align-items: start;
   min-height: 100vh;
 }
 @media (max-width: 1200px) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
+  .grid { grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 860px) {
-  .grid { grid-template-columns: repeat(2, 1fr); }
+  .grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 520px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: repeat(2, 1fr); }
 }
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  overflow: hidden;
-  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  overflow: visible;
   box-shadow: var(--shadow-card);
-}
-.card:hover {
-  border-color: var(--accent);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-hover);
 }
 
 /* Thumbnail */
@@ -315,22 +310,18 @@ a { color: var(--accent2); }
   background: var(--surface2);
   cursor: pointer;
   overflow: hidden;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 .card-thumb img {
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.3s var(--ease);
 }
-.card-thumb:hover img { transform: scale(1.04); }
 .thumb-overlay {
   position: absolute; inset: 0;
-  background: rgba(0,0,0,0.35);
   display: flex; align-items: center; justify-content: center;
-  opacity: 0;
-  transition: opacity var(--dur);
+  pointer-events: none;
 }
-.card-thumb:hover .thumb-overlay { opacity: 1; }
 .play-circle {
   width: 52px; height: 52px;
   background: rgba(255,255,255,0.85);
@@ -339,11 +330,12 @@ a { color: var(--accent2); }
   font-size: 1.2rem;
   color: var(--text);
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  opacity: 0;
   transform: scale(0.8);
-  transition: transform var(--dur) var(--ease);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
   backdrop-filter: blur(4px);
 }
-.card-thumb:hover .play-circle { transform: scale(1); }
+.card-thumb:hover .play-circle { opacity: 1; transform: scale(1); }
 .ts-badge {
   position: absolute; bottom: 8px; right: 8px;
   background: rgba(0,0,0,0.75);
@@ -397,9 +389,35 @@ a { color: var(--accent2); }
 .meta-icon-btn:active { transform: scale(0.92); }
 .meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
 
-/* Extra panel (comment + tags) — 💬 클릭 시에만 표시, 기본 카드 크기엔 영향 없음 */
-.card-extra { display: none; margin-top: 10px; }
+/* Extra panel (comment + tags) — 💬 클릭 시 구글시트 메모처럼 카드 위에 떠서 나타남.
+   카드 자체 높이엔 영향을 주지 않아 그리드 정렬이 항상 유지됨. */
+.card-extra {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+  padding: 12px 14px 14px;
+}
 .card-extra.open { display: block; }
+.card-extra-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.card-extra-title { font-size: 0.75rem; font-weight: 700; color: var(--text3); }
+.card-extra-close {
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 0.85rem; line-height: 1;
+  border-radius: var(--radius-sm); flex-shrink: 0;
+}
+.card-extra-close:hover { background: var(--surface2); color: var(--text); }
 
 .card-meta {
   display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
@@ -1143,8 +1161,8 @@ async function loadData() {
 let allCatsList = [];
 
 function rebuildFilters() {
-  const persons = unique(allData.map(d => d.person).filter(Boolean));
-  const cats    = unique(allData.flatMap(d => d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean) : []));
+  const persons = unique(allData.map(d => d.person).filter(Boolean)).sort((a,b)=>a.localeCompare(b,'ko'));
+  const cats    = unique(allData.flatMap(d => d.cat ? d.cat.split(',').map(c=>c.trim()).filter(Boolean) : [])).sort((a,b)=>a.localeCompare(b,'ko'));
   allCatsList = cats;
 
   const pf = document.getElementById('personFilter');
@@ -1224,6 +1242,10 @@ function renderCards(data) {
       <button type="button" class="meta-icon-btn" onclick="openEditModal(${d.rowIndex})" title="수정">✏️</button>
     </div>
     <div class="card-extra">
+      <div class="card-extra-hd">
+        <span class="card-extra-title">코멘트 · 태그</span>
+        <button type="button" class="card-extra-close" onclick="closeExtra(this)" title="닫기">✕</button>
+      </div>
       <div class="comment-box"
            contenteditable="true"
            data-row="${d.rowIndex}"
@@ -1244,8 +1266,18 @@ function renderCards(data) {
 function toggleExtra(btn) {
   const body = btn.closest('.card-body');
   const extra = body.querySelector('.card-extra');
-  extra.classList.toggle('open');
+  const willOpen = !extra.classList.contains('open');
+  document.querySelectorAll('.card-extra.open').forEach(el => { if (el !== extra) el.classList.remove('open'); });
+  extra.classList.toggle('open', willOpen);
 }
+function closeExtra(btn) {
+  btn.closest('.card-extra').classList.remove('open');
+}
+// 팝오버 바깥을 클릭하면 자동으로 닫힘 (💬 버튼 자체 클릭은 toggleExtra가 처리하므로 제외)
+document.addEventListener('click', e => {
+  if (e.target.closest('.card-extra') || e.target.closest('.meta-icon-btn')) return;
+  document.querySelectorAll('.card-extra.open').forEach(el => el.classList.remove('open'));
+});
 
 // ── EDIT MODAL ─────────────────────────────────────────────
 let editingRow = null;
