@@ -407,6 +407,7 @@ a { color: var(--accent2); }
 
 /* Meta row: 날짜 / 작성자 / 💬 / ✏️ — 모든 카드 동일 높이 */
 .card-meta-row {
+  position: relative;
   display: flex; align-items: center; gap: 8px;
   font-size: 0.78rem; color: var(--text3);
   height: 22px;
@@ -426,33 +427,33 @@ a { color: var(--accent2); }
 .meta-icon-btn:active { transform: scale(0.92); }
 .meta-icon-btn + .meta-icon-btn { margin-left: 2px; }
 
-/* Extra panel (comment only) — 💬 클릭 시 영상 썸네일 위에 겹쳐서 뜨는 검정 테두리 상자 그 자체.
+/* Extra panel (comment only) — 💬 버튼 바로 위, 내용 크기에 맞는 작은 검정 테두리 상자로 뜸.
    카드 자체 높이엔 영향을 주지 않아 그리드 정렬이 항상 유지됨. */
 .card-extra {
   display: none;
   position: absolute;
-  top: 0;
-  left: 0;
+  bottom: calc(100% + 6px);
   right: 0;
   z-index: 30;
+  width: max-content;
+  max-width: 200px;
   background: var(--surface);
   border: 1px solid #000;
   border-radius: 0;
-  padding: 8px 26px 8px 10px;
-  font-size: 0.82rem;
+  padding: 7px 20px 7px 8px;
+  font-size: 0.72rem;
   color: var(--text2);
-  min-height: 38px;
-  line-height: 1.6;
+  line-height: 1.5;
   word-break: break-word;
 }
 .card-extra.open { display: block; }
 .card-extra-close {
   position: absolute;
-  top: 4px; right: 4px;
-  width: 18px; height: 18px;
+  top: 3px; right: 3px;
+  width: 15px; height: 15px;
   display: flex; align-items: center; justify-content: center;
   background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 0.78rem; line-height: 1;
+  color: var(--text3); font-size: 0.68rem; line-height: 1;
 }
 .card-extra-close:hover { color: var(--text); }
 .comment-placeholder { color: var(--text3); font-style: italic; }
@@ -1294,10 +1295,10 @@ function renderCards(data) {
       <span class="meta-person">${d.person ? esc(d.person) : ''}</span>
       <button type="button" class="meta-icon-btn" onclick="toggleExtra(this)" title="코멘트 보기">💬</button>
       <button type="button" class="meta-icon-btn" onclick="openEditModal(${d.rowIndex})" title="수정">✏️</button>
-    </div>
-    <div class="card-extra">
-      <button type="button" class="card-extra-close" onclick="closeExtra(this)" title="닫기">✕</button>
-      ${safeComment || '<span class="comment-placeholder">코멘트 없음</span>'}
+      <div class="card-extra">
+        <button type="button" class="card-extra-close" onclick="closeExtra(this)" title="닫기">✕</button>
+        ${safeComment || '<span class="comment-placeholder">코멘트 없음</span>'}
+      </div>
     </div>
   </div>
 </div>`;
